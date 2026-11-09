@@ -1,5 +1,5 @@
 /* Offline support: app files come from the cache, fresh copies are fetched in the background. */
-const CACHE = 'nn-v3';
+const CACHE = 'nn-v4';
 const FILES = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
 
 self.addEventListener('install', (e) => {
