@@ -1,0 +1,553 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Non-Negotiables</title>
+<meta name="theme-color" content="#0d1117">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Non-Neg">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Figtree:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: one phone-width column. Day type → streak + today's ring → the checklist → last five weeks. */
+:root {
+  --bg: #f3f5f9; --surface: #ffffff; --raised: #e8ecf3; --line: #d9dfe9;
+  --fg: #141922; --muted: #5a6476; --faint: #8a93a3;
+  --accent: #2f5bea; --accent-ink: #ffffff;
+  --done: #1f9d61; --done-soft: #dff4e9; --warn: #b7791f; --miss: #c9cfdb;
+  --display: "Barlow Condensed", "Arial Narrow", system-ui, sans-serif;
+  --body: "Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0d1117; --surface: #151b24; --raised: #1d2531; --line: #263040;
+  --fg: #eef2f8; --muted: #a2adbf; --faint: #6d788b;
+  --accent: #6d8dff; --accent-ink: #0d1117;
+  --done: #3ccf8a; --done-soft: #143326; --warn: #e3a948; --miss: #2a3443;
+  color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #0d1117; --surface: #151b24; --raised: #1d2531; --line: #263040;
+  --fg: #eef2f8; --muted: #a2adbf; --faint: #6d788b;
+  --accent: #6d8dff; --accent-ink: #0d1117;
+  --done: #3ccf8a; --done-soft: #143326; --warn: #e3a948; --miss: #2a3443;
+  color-scheme: dark; }
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 15px; line-height: 1.45; -webkit-tap-highlight-color: transparent; }
+.wrap { max-width: 520px; margin: 0 auto; padding-block: 18px 40px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: flex; flex-direction: column; gap: 18px; }
+button { font: inherit; color: inherit; cursor: pointer; }
+button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.tnum { font-variant-numeric: tabular-nums; }
+.label { font-size: 11px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; color: var(--faint); }
+
+/* Header */
+.top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.date { font-family: var(--display); font-weight: 700; font-size: 30px; line-height: 1; letter-spacing: .01em; text-transform: uppercase; }
+.daytype { margin-top: 8px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; color: var(--muted); font-size: 13px; }
+.chip { display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; padding: 4px 10px; font-size: 12.5px; font-weight: 600; background: var(--raised); color: var(--fg); border: 1px solid var(--line); }
+.chip.work { background: color-mix(in srgb, var(--accent) 14%, var(--surface)); border-color: color-mix(in srgb, var(--accent) 40%, var(--line)); }
+.switch { background: none; border: 0; padding: 0; color: var(--accent); font-size: 12.5px; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
+.navday { display: flex; gap: 6px; }
+.navday button { width: 36px; height: 36px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); display: grid; place-items: center; }
+.navday button:disabled { opacity: .35; cursor: default; }
+
+/* Streak + ring */
+.hero { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 16px; background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 18px; }
+.streak { font-family: var(--display); font-weight: 700; font-size: 64px; line-height: .9; }
+.streak small { font-size: 22px; margin-left: 6px; color: var(--muted); font-weight: 600; }
+.sub { color: var(--muted); font-size: 13px; margin-top: 6px; }
+.ring { position: relative; width: 96px; height: 96px; }
+.ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.ring .count { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; font-family: var(--display); font-weight: 700; font-size: 22px; line-height: 1; }
+.ring .count span { display: block; font-family: var(--body); font-size: 10.5px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--faint); margin-top: 3px; }
+.ring circle { transition: stroke-dashoffset .5s ease; }
+.banner { border-radius: 14px; padding: 12px 14px; font-size: 13.5px; border: 1px solid var(--line); background: var(--surface); color: var(--muted); }
+.banner.ok { background: var(--done-soft); border-color: color-mix(in srgb, var(--done) 40%, var(--line)); color: var(--fg); font-weight: 600; }
+.banner.warn { border-color: color-mix(in srgb, var(--warn) 45%, var(--line)); }
+
+/* Checklist */
+.list { display: flex; flex-direction: column; gap: 10px; }
+.task { display: grid; grid-template-columns: auto 1fr; gap: 14px; align-items: center; width: 100%; text-align: left; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 14px 16px; min-height: 68px; transition: background .15s, border-color .15s; }
+.task .box { width: 30px; height: 30px; border-radius: 9px; border: 2px solid var(--line); display: grid; place-items: center; color: transparent; transition: all .15s; }
+.task.done { background: var(--done-soft); border-color: color-mix(in srgb, var(--done) 45%, var(--line)); }
+.task.done .box { background: var(--done); border-color: var(--done); color: var(--accent-ink); }
+.task .name { font-weight: 700; font-size: 16.5px; }
+.task .rule { color: var(--muted); font-size: 13px; }
+.task .when { color: var(--accent); font-size: 12.5px; font-weight: 600; }
+.salah { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 14px 16px; display: flex; flex-direction: column; gap: 12px; }
+.salah.done { background: var(--done-soft); border-color: color-mix(in srgb, var(--done) 45%, var(--line)); }
+.salah .head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.prayers { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.prayers button { border: 1px solid var(--line); background: var(--bg); border-radius: 11px; padding: 10px 0; font-size: 13px; font-weight: 600; min-height: 44px; }
+.prayers button[aria-pressed="true"] { background: var(--done); border-color: var(--done); color: var(--accent-ink); }
+
+/* History */
+.hist { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+.grid .dow { text-align: center; font-size: 10.5px; font-weight: 600; color: var(--faint); }
+.cell { aspect-ratio: 1; max-width: 100%; border-radius: 8px; border: 0; background: var(--miss); display: grid; place-items: center; font-size: 11px; font-weight: 600; color: var(--muted); padding: 0; }
+.cell.full { background: var(--done); color: var(--accent-ink); }
+.cell.part { background: color-mix(in srgb, var(--done) 30%, var(--miss)); color: var(--fg); }
+.cell.future, .cell.before { background: transparent; border: 1px dashed var(--line); color: var(--faint); cursor: default; }
+.cell.sel { outline: 2px solid var(--accent); outline-offset: 1px; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 12px; color: var(--muted); }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+
+.foot { display: flex; flex-direction: column; gap: 10px; font-size: 13px; color: var(--muted); }
+.btn { border: 1px solid var(--line); background: var(--surface); border-radius: 12px; padding: 11px 14px; font-weight: 600; font-size: 14px; text-align: center; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.btn:disabled { opacity: .55; cursor: default; }
+.status { display: inline-flex; align-items: center; gap: 6px; }
+.dot { width: 7px; height: 7px; border-radius: 50%; background: var(--faint); }
+.dot.live { background: var(--done); }
+.dot.err { background: var(--warn); }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+html { background: var(--bg); }
+body { margin: 0; min-height: 100vh; overscroll-behavior-y: none; }
+.wrap { padding-top: max(18px, calc(env(safe-area-inset-top, 0px) + 10px)); padding-bottom: max(40px, calc(env(safe-area-inset-bottom, 0px) + 24px)); }
+.settings { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; }
+.settings > summary { list-style: none; padding: 14px 16px; font-weight: 600; font-size: 14px; color: var(--fg); cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+.settings > summary::-webkit-details-marker { display: none; }
+.settings > summary::after { content: '›'; color: var(--faint); font-size: 20px; transition: transform .15s; }
+.settings[open] > summary::after { transform: rotate(90deg); }
+.settings .body { padding: 0 16px 16px; display: flex; flex-direction: column; gap: 16px; }
+.settings h3 { margin: 0 0 4px; font-size: 13.5px; font-weight: 700; color: var(--fg); }
+.settings p { margin: 0 0 8px; font-size: 13px; color: var(--muted); }
+.row { display: flex; gap: 8px; flex-wrap: wrap; }
+.row .btn { flex: 1 1 140px; }
+.field { width: 100%; font: inherit; font-size: 16px; color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; margin-bottom: 8px; }
+.msg { font-size: 12.5px; color: var(--muted); margin-top: 6px; }
+.ring .count { align-content: center; gap: 0; }
+</style>
+
+</head>
+<body>
+<div class="wrap" id="app">
+  <header class="top">
+    <div>
+      <div class="label" id="eyebrow">Today</div>
+      <div class="date" id="date">—</div>
+      <div class="daytype" id="daytype"></div>
+    </div>
+    <div class="navday">
+      <button type="button" id="prev" aria-label="Previous day">‹</button>
+      <button type="button" id="next" aria-label="Next day">›</button>
+    </div>
+  </header>
+
+  <section class="hero" aria-label="Streak">
+    <div>
+      <div class="label">Current streak</div>
+      <div class="streak tnum" id="streak">0<small>days</small></div>
+      <div class="sub tnum" id="best">Every task done = the day counts.</div>
+    </div>
+    <div class="ring" aria-hidden="true">
+      <svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="42" fill="none" stroke="var(--raised)" stroke-width="10"/><circle id="ringbar" cx="50" cy="50" r="42" fill="none" stroke="var(--done)" stroke-width="10" stroke-linecap="round" stroke-dasharray="263.9" stroke-dashoffset="263.9"/></svg>
+      <div class="count tnum" id="ringtext">0/0<span>done</span></div>
+    </div>
+  </section>
+
+  <div class="banner" id="banner" hidden></div>
+
+  <section class="list" id="list" aria-label="Today's non-negotiables"></section>
+
+  <section class="hist" aria-label="Last five weeks">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px">
+      <div class="label">Last 5 weeks</div>
+      <div class="tnum" style="font-size:12px;color:var(--muted)" id="rate"></div>
+    </div>
+    <div class="grid" id="grid"></div>
+    <div class="legend"><span><i style="background:var(--done)"></i>All done</span><span><i style="background:color-mix(in srgb, var(--done) 30%, var(--miss))"></i>Some done</span><span><i style="background:var(--miss)"></i>Missed</span></div>
+  </section>
+  <footer class="foot">
+    <div class="status"><span class="dot" id="caldot"></span><span id="calstatus"></span></div>
+    <div class="status"><span class="dot live" id="dbdot"></span><span id="dbstatus">Saved on this phone.</span></div>
+  </footer>
+
+  <details class="settings" id="settings">
+    <summary>Settings &amp; backup</summary>
+    <div class="body">
+      <div>
+        <h3>Google Calendar</h3>
+        <p>Paste your calendar link so work days are spotted from shifts named “Work” or “Shift”. Without it, tap “Make it a work day” yourself.</p>
+        <input class="field" id="calurl" type="url" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://script.google.com/macros/s/…/exec?key=…">
+        <div class="row"><button type="button" class="btn primary" id="calsave">Save link</button><button type="button" class="btn" id="calclear">Remove</button></div>
+        <div class="msg" id="calmsg" hidden></div>
+      </div>
+      <div>
+        <h3>Backup</h3>
+        <p>Your ticks live on this phone. Save a backup now and then (to Files or iCloud Drive) so a new phone can pick up your streak.</p>
+        <div class="row"><button type="button" class="btn" id="export">Save a backup</button><button type="button" class="btn" id="import">Restore a backup</button></div>
+        <input type="file" id="importfile" accept="application/json,.json" hidden>
+        <div class="msg" id="backupmsg" hidden></div>
+      </div>
+    </div>
+  </details>
+</div>
+
+<script>
+(() => {
+  /* ── Rules (from Mahamed's answers, 9 Nov 2026) ─────────────────────────── */
+  const PRAYERS = [['fajr', 'Fajr'], ['dhuhr', 'Dhuhr'], ['asr', 'Asr'], ['maghrib', 'Maghrib'], ['isha', 'Isha']];
+  const TASKS = {
+    salah:    { name: 'Salah', rule: 'All 5 prayed' },
+    diet:     { name: 'Diet', rule: '150g protein, stuck to the diet' },
+    trading:  { name: 'Trading', rule: 'Education block or trade check-in' },
+    business: { name: 'Everward', rule: '1 hour minimum on the business', match: /everward|business/i },
+    gym:      { name: 'Gym', rule: 'At least 3 sessions a week, up to 6', match: /\bgym\b|workout|training/i },
+  };
+  const PLAN = { work: ['salah', 'diet', 'trading'], off: ['salah', 'diet', 'trading', 'business'] };
+  const GYM_MIN = 3, GYM_MAX = 6; // weekly target, Monday to Sunday
+  const WORK_RE = /\b(work|shift|on shift|rota)\b/i;
+  const NOT_WORK_RE = /workout|homework|work on/i;
+  const CAL = 'Google Calendar';
+
+  /* ── Dates (local) ──────────────────────────────────────────────────────── */
+  const pad = (n) => String(n).padStart(2, '0');
+  const iso = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  const addDays = (s, n) => { const d = new Date(s + 'T12:00:00'); d.setDate(d.getDate() + n); return iso(d); };
+  const today = () => iso(new Date());
+  const hhmm = (s) => { const d = new Date(s); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; };
+
+  /* ── State ──────────────────────────────────────────────────────────────── */
+  const S = {
+    day: today(),
+    days: {},          // date → stored doc
+    cal: { state: 'off', events: null, date: null },
+    settings: {},
+  };
+  const $ = (id) => document.getElementById(id);
+
+  /* ── Storage: this phone ────────────────────────────────────────────────── */
+  const LS = 'nn.days.v1', LS_SET = 'nn.settings.v1', LS_CAL = 'nn.cal.v1';
+  const lsGet = (k, d) => { try { return JSON.parse(localStorage.getItem(k) || 'null') ?? d; } catch { return d; } };
+  const lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch { return false; } };
+  const lsWrite = () => { if (!lsSet(LS, S.days)) setDbStatus('err', 'Couldn’t save on this phone. Is storage full?'); };
+
+  /* ── Day logic ──────────────────────────────────────────────────────────── */
+  function calWork(date) {
+    if (S.cal.date !== date || !S.cal.events) return null;
+    const ev = S.cal.events.find((e) => WORK_RE.test(e.summary || '') && !NOT_WORK_RE.test(e.summary || ''));
+    return ev || false;
+  }
+  function modeOf(date) {
+    const doc = S.days[date];
+    if (doc && doc.override) return doc.mode;
+    const w = calWork(date);
+    if (w !== null) return w ? 'work' : 'off';
+    return doc?.mode || 'off';
+  }
+  function required(date) {
+    const doc = S.days[date];
+    if (date < today() && doc?.required && !doc.override) return doc.required; // past days keep the plan they had
+    return PLAN[modeOf(date)];
+  }
+  const blank = () => ({ salah: Object.fromEntries(PRAYERS.map(([k]) => [k, false])), diet: false, trading: false, business: false, gym: false });
+  function ticks(date) { const d = S.days[date]; return { ...blank(), ...(d?.ticks || {}), salah: { ...blank().salah, ...(d?.ticks?.salah || {}) } }; }
+  const isDone = (t, id) => (id === 'salah' ? PRAYERS.every(([k]) => t.salah[k]) : !!t[id]);
+  function progress(date) {
+    const req = required(date); const t = ticks(date);
+    const n = req.filter((id) => isDone(t, id)).length;
+    return { n, total: req.length, complete: n === req.length };
+  }
+  function dayState(date) {
+    const doc = S.days[date];
+    if (!doc) return 'miss';
+    if (doc.complete) return 'full';
+    const t = doc.ticks || {};
+    const any = Object.values(t).some((v) => (typeof v === 'object' ? Object.values(v).some(Boolean) : v));
+    return any ? 'part' : 'miss';
+  }
+  function streaks() {
+    const t = today();
+    let d = S.days[t]?.complete ? t : addDays(t, -1);
+    let cur = 0;
+    while (S.days[d]?.complete) { cur++; d = addDays(d, -1); }
+    const dates = Object.keys(S.days).filter((k) => S.days[k].complete).sort();
+    let best = 0, run = 0, prev = null;
+    dates.forEach((k) => { run = prev && addDays(prev, 1) === k ? run + 1 : 1; best = Math.max(best, run); prev = k; });
+    return { cur, best, start: Object.keys(S.days).sort()[0] || null };
+  }
+
+  const weekStart = (date) => { const d = new Date(date + 'T12:00:00'); return addDays(date, -((d.getDay() + 6) % 7)); };
+  function gymWeek(date) {
+    const ws = weekStart(date); let n = 0;
+    for (let i = 0; i < 7; i++) if (S.days[addDays(ws, i)]?.ticks?.gym) n++;
+    return { n, ws, daysLeft: 6 - daysBetweenISO(ws, date) };
+  }
+  function daysBetweenISO(a, b) { return Math.round((new Date(b + 'T12:00:00') - new Date(a + 'T12:00:00')) / 86400000); }
+  function gymStreak() {
+    let ws = weekStart(today()); let n = gymWeek(ws).n >= GYM_MIN ? 1 : 0;
+    ws = addDays(ws, -7);
+    while (gymWeek(ws).n >= GYM_MIN) { n++; ws = addDays(ws, -7); }
+    return n;
+  }
+
+  /* ── Writes: one at a time per day ──────────────────────────────────────── */
+  function save(date, patch) {
+    const prev = S.days[date] || {};
+    const next = { date, ...prev, ...patch };
+    if (!next.override) { const w = calWork(date); next.mode = w === null ? (prev.mode || 'off') : (w ? 'work' : 'off'); }
+    if (patch.override) delete next.required;
+    S.days[date] = next;
+    const p = progress(date);
+    next.required = required(date);
+    next.complete = p.complete;
+    next.updatedAt = Date.now();
+    render();
+    lsWrite();
+  }
+  function toggle(id, prayer) {
+    const t = ticks(S.day);
+    if (id === 'salah') t.salah[prayer] = !t.salah[prayer]; else t[id] = !t[id];
+    save(S.day, { ticks: t });
+  }
+  function switchMode() {
+    const m = modeOf(S.day) === 'work' ? 'off' : 'work';
+    save(S.day, { mode: m, override: true });
+  }
+
+  /* ── Render ─────────────────────────────────────────────────────────────── */
+  function render() {
+    const T = today();
+    const d = S.day;
+    const dt = new Date(d + 'T12:00:00');
+    $('eyebrow').textContent = d === T ? 'Today' : d === addDays(T, -1) ? 'Yesterday' : 'Looking back';
+    $('date').textContent = dt.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+    $('next').disabled = d >= T;
+    $('prev').disabled = d <= addDays(T, -34);
+
+    const mode = modeOf(d);
+    const w = calWork(d);
+    const doc = S.days[d];
+    const why = doc?.override ? 'set by you' : w ? `${w.summary} ${w.start?.dateTime ? hhmm(w.start.dateTime) + '–' + hhmm(w.end.dateTime) : ''}`.trim() : S.cal.date === d && S.cal.events ? 'nothing work-related in your calendar' : '';
+    $('daytype').innerHTML = '';
+    const chip = document.createElement('span');
+    chip.className = 'chip' + (mode === 'work' ? ' work' : '');
+    chip.textContent = mode === 'work' ? 'Work day' : 'Day off';
+    $('daytype').append(chip);
+    if (why) { const s = document.createElement('span'); s.textContent = why; $('daytype').append(s); }
+    const sw = document.createElement('button');
+    sw.type = 'button'; sw.className = 'switch'; sw.id = 'switchmode';
+    sw.textContent = mode === 'work' ? 'Make it a day off' : 'Make it a work day';
+    sw.onclick = switchMode;
+    $('daytype').append(sw);
+
+    const p = progress(d);
+    const C = 263.9;
+    $('ringbar').setAttribute('stroke-dashoffset', String(C * (1 - (p.total ? p.n / p.total : 0))));
+    $('ringtext').innerHTML = `${p.n}/${p.total}<span>done</span>`;
+
+    const st = streaks();
+    $('streak').innerHTML = `${st.cur}<small>${st.cur === 1 ? 'day' : 'days'}</small>`;
+    const gw = gymWeek(T), gs = gymStreak();
+    $('best').textContent = `${st.best ? `Best ${st.best} ${st.best === 1 ? 'day' : 'days'}` : 'Every task done = the day counts'} · Gym ${gw.n}/${GYM_MIN} this week${gs ? ` · ${gs} ${gs === 1 ? 'week' : 'weeks'} on target` : ''}`;
+
+    const banner = $('banner');
+    if (p.complete) { banner.hidden = false; banner.className = 'banner ok'; banner.textContent = d === T ? `Day locked in. ${st.cur}-day streak.` : 'This day is complete.'; }
+    else if (d === T && p.n === 0 && st.cur > 0) { banner.hidden = false; banner.className = 'banner'; banner.textContent = `Finish today to make it ${st.cur + 1} days.`; }
+    else if (d < T && !p.complete) { banner.hidden = false; banner.className = 'banner warn'; banner.textContent = 'Fill in anything you did but forgot to tick. Only an honest log keeps the streak worth having.'; }
+    else banner.hidden = true;
+
+    // Checklist
+    const list = $('list');
+    list.innerHTML = '';
+    const t = ticks(d);
+    required(d).forEach((id) => {
+      const def = TASKS[id];
+      if (id === 'salah') {
+        const box = document.createElement('div');
+        box.className = 'salah' + (isDone(t, 'salah') ? ' done' : '');
+        const n = PRAYERS.filter(([k]) => t.salah[k]).length;
+        box.innerHTML = `<div class="head"><div><div class="name" style="font-weight:700;font-size:16.5px">Salah</div><div class="rule" style="color:var(--muted);font-size:13px">${def.rule}</div></div><div class="tnum" style="font-weight:700">${n}/5</div></div>`;
+        const row = document.createElement('div'); row.className = 'prayers';
+        PRAYERS.forEach(([k, label]) => {
+          const b = document.createElement('button');
+          b.type = 'button'; b.id = `p-${k}`; b.textContent = label; b.setAttribute('aria-pressed', String(!!t.salah[k]));
+          b.onclick = () => toggle('salah', k);
+          row.append(b);
+        });
+        box.append(row); list.append(box);
+        return;
+      }
+      const btn = document.createElement('button');
+      btn.type = 'button'; btn.id = `t-${id}`;
+      btn.className = 'task' + (t[id] ? ' done' : '');
+      btn.setAttribute('aria-pressed', String(!!t[id]));
+      const ev = def.match && S.cal.date === d && S.cal.events ? S.cal.events.find((e) => def.match.test(e.summary || '') && e.start?.dateTime) : null;
+      btn.innerHTML = `<span class="box"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3L13 4.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span><div class="name"></div><div class="rule"></div>${ev ? '<div class="when"></div>' : ''}</span>`;
+      btn.querySelector('.name').textContent = def.name;
+      btn.querySelector('.rule').textContent = def.rule;
+      if (ev) btn.querySelector('.when').textContent = `In your calendar at ${hhmm(ev.start.dateTime)}`;
+      btn.onclick = () => toggle(id);
+      list.append(btn);
+    });
+
+    // Gym: weekly target, not part of the daily check
+    {
+      const g = gymWeek(d);
+      const on = !!t.gym;
+      const full = g.n >= GYM_MAX && !on;
+      const btn = document.createElement('button');
+      btn.type = 'button'; btn.id = 't-gym';
+      btn.className = 'task' + (on ? ' done' : '');
+      btn.setAttribute('aria-pressed', String(on));
+      btn.disabled = full;
+      const ev = S.cal.date === d && S.cal.events ? S.cal.events.find((e) => TASKS.gym.match.test(e.summary || '') && e.start?.dateTime) : null;
+      const need = Math.max(0, GYM_MIN - g.n);
+      const note = g.n >= GYM_MAX ? 'Week maxed at 6. Rest up.' : need === 0 ? `Weekly target hit. ${GYM_MAX - g.n} more allowed.` : `${need} more this week to hit 3${g.daysLeft < need && d >= weekStart(today()) ? ' (tight now)' : ''}.`;
+      btn.innerHTML = `<span class="box"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3L13 4.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span style="display:block;width:100%"><span style="display:flex;justify-content:space-between;gap:10px;align-items:baseline"><span class="name"></span><span class="tnum gymcount" style="font-weight:700"></span></span><div class="rule"></div><div class="when"></div></span>`;
+      btn.querySelector('.name').textContent = 'Gym';
+      btn.querySelector('.gymcount').textContent = `${g.n}/${GYM_MIN} this week`;
+      btn.querySelector('.rule').textContent = note;
+      btn.querySelector('.when').textContent = ev ? `In your calendar at ${hhmm(ev.start.dateTime)}` : '';
+      if (full) btn.style.opacity = '.6';
+      btn.onclick = () => toggle('gym');
+      list.append(btn);
+    }
+
+    // History grid: 5 weeks ending this week (Mon-start)
+    const grid = $('grid'); grid.innerHTML = '';
+    ['M', 'T', 'W', 'T', 'F', 'S', 'S'].forEach((x) => { const e = document.createElement('div'); e.className = 'dow'; e.textContent = x; grid.append(e); });
+    const now = new Date(T + 'T12:00:00');
+    const dow = (now.getDay() + 6) % 7;
+    const start = addDays(T, -dow - 28);
+    const first = st.start;
+    let full = 0, counted = 0;
+    for (let i = 0; i < 35; i++) {
+      const k = addDays(start, i);
+      const c = document.createElement('button');
+      c.type = 'button';
+      const future = k > T;
+      const before = !first || k < first;
+      const s = future ? 'future' : before ? 'before' : k === T && !S.days[k]?.complete ? (dayState(k) === 'miss' ? 'today' : 'part') : dayState(k);
+      c.className = 'cell tnum ' + (s === 'today' ? '' : s) + (k === d ? ' sel' : '');
+      c.textContent = Number(k.slice(8));
+      c.setAttribute('aria-label', `${k}: ${s === 'full' ? 'all done' : s === 'part' ? 'some done' : future || before ? 'no data' : 'missed'}`);
+      if (!future && k >= addDays(T, -34)) c.onclick = () => { S.day = k; render(); };
+      else c.disabled = true;
+      if (!future && !before && k < T) { counted++; if (s === 'full') full++; }
+      grid.append(c);
+    }
+    $('rate').textContent = counted ? `${full}/${counted} days complete` : '';
+    // Status line
+    const cs = S.cal.state;
+    $('caldot').className = 'dot' + (cs === 'live' ? ' live' : cs === 'error' ? ' err' : '');
+    $('calstatus').textContent = cs === 'live' ? 'Reading today from your Google Calendar.'
+      : cs === 'cached' ? 'Using your calendar from the last check.'
+      : cs === 'loading' ? 'Checking your calendar…'
+      : cs === 'error' ? S.cal.message
+      : 'Calendar not linked. Set work days yourself, or link it in Settings.';
+  }
+
+  function setDbStatus(kind, text) {
+    $('dbdot').className = 'dot' + (kind === 'live' ? ' live' : kind === 'err' ? ' err' : '');
+    $('dbstatus').textContent = text;
+  }
+
+  /* ── Calendar (optional link to a Google Apps Script, today only) ───────── */
+  let calSeq = 0;
+  async function fetchCal() {
+    const url = S.settings.calUrl;
+    if (!url) { S.cal = { state: 'off', events: null, date: null }; render(); return; }
+    const d = today(); const seq = ++calSeq;
+    if (S.cal.date !== d) { S.cal = { ...S.cal, state: 'loading' }; render(); }
+    try {
+      const res = await fetch(url + (url.includes('?') ? '&' : '?') + 'date=' + d, { cache: 'no-store' });
+      const body = await res.json();
+      if (seq !== calSeq) return;
+      if (body.error === 'bad_key') throw Object.assign(new Error(), { msg: 'The calendar link’s key doesn’t match. Check the key at the end of the link.' });
+      if (!Array.isArray(body.events)) throw new Error();
+      S.cal = { state: 'live', events: body.events, date: d };
+      lsSet(LS_CAL, { date: d, events: body.events, at: Date.now() });
+    } catch (e) {
+      if (seq !== calSeq) return;
+      const cached = lsGet(LS_CAL, null);
+      if (!e.msg && cached?.date === d) S.cal = { state: 'cached', events: cached.events, date: d };
+      else S.cal = { state: 'error', events: null, date: null, message: e.msg || (navigator.onLine === false ? 'Offline. Set the day type yourself for now.' : 'Couldn’t reach your calendar link. Set the day type yourself for now.') };
+    }
+    render();
+  }
+
+  function saveSettings() { lsSet(LS_SET, S.settings); }
+  const showMsg = (id, text) => { const m = $(id); m.hidden = false; m.textContent = text; };
+
+  $('calurl').value = '';
+  $('calsave').onclick = async () => {
+    const v = $('calurl').value.trim();
+    if (!/^https:\/\/script\.google(usercontent)?\.com\//.test(v)) { showMsg('calmsg', 'That doesn’t look like a Google Apps Script link. It starts with https://script.google.com/'); return; }
+    if (!/[?&]key=/.test(v)) { showMsg('calmsg', 'Add your key to the end of the link, like …/exec?key=your-key'); return; }
+    S.settings.calUrl = v; saveSettings();
+    showMsg('calmsg', 'Saved. Checking…');
+    await fetchCal();
+    showMsg('calmsg', S.cal.state === 'live' ? `Linked. ${S.cal.events.length} ${S.cal.events.length === 1 ? 'event' : 'events'} today.` : S.cal.message || 'Saved.');
+  };
+  $('calclear').onclick = () => { delete S.settings.calUrl; saveSettings(); $('calurl').value = ''; showMsg('calmsg', 'Calendar link removed.'); fetchCal(); };
+
+  /* ── Backup ─────────────────────────────────────────────────────────────── */
+  $('export').onclick = async () => {
+    const data = JSON.stringify({ app: 'non-negotiables', version: 1, exportedAt: new Date().toISOString(), days: S.days, settings: S.settings }, null, 1);
+    const name = `non-negotiables-${today()}.json`;
+    const file = new File([data], name, { type: 'application/json' });
+    try {
+      if (navigator.canShare?.({ files: [file] })) { await navigator.share({ files: [file], title: name }); showMsg('backupmsg', 'Backup ready. Pick “Save to Files” to keep it.'); return; }
+    } catch (e) { if (e?.name === 'AbortError') return; }
+    const a = document.createElement('a'); a.href = URL.createObjectURL(file); a.download = name;
+    document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+    showMsg('backupmsg', `Saved ${name}.`);
+  };
+  $('import').onclick = () => $('importfile').click();
+  $('importfile').onchange = async (e) => {
+    const f = e.target.files?.[0]; e.target.value = '';
+    if (!f) return;
+    try {
+      const b = JSON.parse(await f.text());
+      if (b?.app !== 'non-negotiables' || typeof b.days !== 'object') throw new Error();
+      const n = Object.keys(b.days).filter((k) => /^\d{4}-\d{2}-\d{2}$/.test(k)).length;
+      if (!confirm(`Restore ${n} ${n === 1 ? 'day' : 'days'} from this backup? Days on this phone that are newer are kept.`)) return;
+      Object.entries(b.days).forEach(([k, v]) => {
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(k) || !v || typeof v !== 'object') return;
+        if (!S.days[k] || (v.updatedAt || 0) > (S.days[k].updatedAt || 0)) S.days[k] = v;
+      });
+      if (b.settings?.calUrl && !S.settings.calUrl) { S.settings.calUrl = b.settings.calUrl; saveSettings(); fetchCal(); }
+      lsWrite(); render();
+      showMsg('backupmsg', `Restored ${n} ${n === 1 ? 'day' : 'days'}.`);
+    } catch { showMsg('backupmsg', 'That file isn’t a Non-Negotiables backup.'); }
+  };
+
+  /* ── Boot ───────────────────────────────────────────────────────────────── */
+  $('prev').onclick = () => { S.day = addDays(S.day, -1); render(); };
+  $('next').onclick = () => { if (S.day < today()) { S.day = addDays(S.day, 1); render(); } };
+
+  S.days = lsGet(LS, {});
+  S.settings = lsGet(LS_SET, {});
+  if (S.settings.calUrl) $('calurl').value = S.settings.calUrl;
+  const cached = lsGet(LS_CAL, null);
+  if (S.settings.calUrl && cached?.date === today()) S.cal = { state: 'cached', events: cached.events, date: cached.date };
+  navigator.storage?.persist?.().catch(() => {});
+  render();
+  fetchCal();
+
+  // Coming back to the app: roll over to a new day, re-check the calendar.
+  let lastToday = today();
+  function wake() {
+    const t = today();
+    if (t !== lastToday) { if (S.day === lastToday) S.day = t; lastToday = t; }
+    render(); fetchCal();
+  }
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') wake(); });
+  setInterval(() => { if (document.visibilityState === 'visible') wake(); }, 10 * 60_000);
+
+  if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
+})();
+
+</script>
+</body>
+</html>
